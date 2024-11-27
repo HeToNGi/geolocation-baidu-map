@@ -1,6 +1,4 @@
 const puppeteer = require('puppeteer');
-console.log(puppeteer, 'puppeteer')
-
 async function startPuppeteer() {
   let launchParameters = {
     args: [
