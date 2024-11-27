@@ -1,4 +1,4 @@
-FROM buildkite/puppeteer:10.0.0
+FROM node:20
 
 # Create app directory
 WORKDIR /usr/src/app

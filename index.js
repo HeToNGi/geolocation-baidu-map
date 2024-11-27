@@ -3,7 +3,7 @@ const path = require('path')
 const app = express()
 const port = 3000
 const config = require('./config.json')
-// const { startPuppeteer } = require('./puppeteer.js')
+const { startPuppeteer } = require('./puppeteer.js')
 app.use(express.static(path.join(__dirname, 'public')));
 
 const { Pool } = require('pg')
@@ -181,4 +181,4 @@ app.post('/test', async (req, res) => {
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`)
 })
-// startPuppeteer();
+startPuppeteer();
