@@ -1,0 +1,9 @@
+{
+  "user": "pgadmin",
+  "host": "tt-sit-rds-pgsql.xtt-inc.xyz",
+  "database": "city_land",
+  "password": "rHc]yxhpz3z]/4CAl{/*",
+  "pgport": 5432,
+  "mesh_table": "beijing_mesh_50",
+  "poi_table": "bj_poi_50_copy2"
+}

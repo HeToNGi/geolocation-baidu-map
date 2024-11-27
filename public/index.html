@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <script type="text/javascript" src="https://api.map.baidu.com/api?v=1.0&type=webgl&ak=p7DO0vHWAkgWHoTngllctT3qDoq3hVbp"></script>
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+    }
+    #container {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+<div id="container"></div>
+<script>
+// 百度地图API功能
+// var map = new BMapGL.Map("container");            // 创建Map实例
+// map.enableScrollWheelZoom(true);     //开启鼠标滚轮缩放
+// var mPoint = new BMapGL.Point(116.472985,39.964751);  
+// let markers = [];
+// map.centerAndZoom(mPoint, 15);
+// var myGeo = new BMapGL.Geocoder();
+// map.addEventListener('click', function(e) {
+//   const { latlng } = e;
+//   map.centerAndZoom(latlng, 18);
+//   myGeo.getLocation(latlng, function(r){  
+//     markers.forEach(m => {
+//       map.removeOverlay(m)
+//     })
+//     markers = [];
+//     renderMarke(r.point)
+//     r.surroundingPois.forEach(element => {
+//       renderMarke(element.point)
+//     });
+//     console.log(r)
+//     console.log(handlerData(r), 'handlerData(r)')
+//   }, {poiRadius: 100, numPois: 20});
+// });
+
+// const renderMarke = (point) => {
+//   var marker = new BMapGL.Marker(point);        // 创建标注   
+//   markers.push(marker);
+//   map.addOverlay(marker);                     // 将标注添加到地图中
+// }
+
+let page = 1;
+var myGeo = new BMapGL.Geocoder();
+myGeo.getLocation(new BMapGL.Point(116.473236, 39.964502), function(r){  
+  console.log(r)
+  fetch('/test', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(r)
+  }).then(res => {})
+}, {poiRadius: 100, numPois: 20});
+
+const getMeshData = () => {
+  const res = fetch(`/beijing-mesh?page=${page}&limit=5`).then(response => response.json()).then(res => {
+    page++;
+    if (page === 3) return;
+    let count = res.length;
+    const gids = res.map(i => i.gid)
+    const result = [];
+    res.forEach(element => {
+      console.count(element.x_coord, element.y_coord, element.gid)
+      // 根据坐标得到地址描述
+      myGeo.getLocation(new BMapGL.Point(element.x_coord, element.y_coord), function(r){
+        if (!r.surroundingPois.length) {
+          count--;
+          if (count === 0) {
+            updataStatus(gids)
+          }
+        } else {
+          fetch('/insertdata', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(handlerData(r, element.gid))
+          }).then(res => res.json()).then(data => {
+              console.log('数据上传成功:', data);
+            }).catch(err => {
+              console.error('数据上传失败:', err);
+            }).finally(() => {
+              count--;
+              if (count === 0) {
+                updataStatus(gids)
+              }
+            });
+        };
+      }, {poiRadius: 100, numPois: 20});
+    });
+  })
+}
+
+// getMeshData();
+
+const updataStatus = (gids) => {
+  fetch('/updatastatus', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(gids)
+  }).then(res => res.json()).then(data => {
+    console.log('数据修改成功:', data);
+  }).catch((err) => {
+    console.error('数据修改失败:', err);
+  }).finally(() => {
+    getMeshData();
+  })
+}
+
+
+  // .then(response => response.json())
+  // .then(data => {
+  //   let count = data.length;
+  //   const result = [];
+  //   data.forEach(element => {
+  //     // 根据坐标得到地址描述
+  //     myGeo.getLocation(new BMapGL.Point(element.x_coord, element.y_coord), function(r){
+  //       count--;
+  //       result.push(r)
+  //       if (count === 0) {
+  //         console.timeEnd(1)
+  //         console.log(result)
+  //       }
+  //       r.surroundingPois.forEach(element => {
+          
+  //       });
+  //     }, {poiRadius: 100, numPois: 20});
+  //   });
+  // })
+  // .catch(error => {
+  //   console.error('请求出错:', error);
+  // });
+  const handlerData = (data, gid) => {
+    const res = [];
+    const content = data.content
+    const addressComponents = data.addressComponents
+    data.surroundingPois.forEach((ele, i) => {
+      res.push({
+        gid,
+        uid: ele.uid,
+        geom: ele.point.lng + ',' + ele.point.lat,
+        cp: content.surround_poi[i].cp,
+        direction: content.surround_poi[i].direction,
+        distance: content.surround_poi[i].distance,
+        title: ele.title,
+        point_x: ele.point.lng,
+        point_y: ele.point.lat,
+        city: ele.city,
+        poi_type: ele._poiType,
+        type: ele.type,
+        addr: ele.address,
+        postcode: ele.postcode || '',
+        phone_number: ele.phoneNumber || '',
+        tag: content.surround_poi[i].tag,
+        tel: content.surround_poi[i].tel,
+        lng: ele.point.lng,
+        lat: ele.point.lat,
+        zip: content.surround_poi[i].zip,
+        name: content.surround_poi[i].name,
+        parent_poi_addr: data.address,
+        parent_poi_point_x: data.point.lng,
+        parent_poi_point_y: data.point.lat,
+        parent_poi_direction: content.address_detail.direction,
+        parent_poi_distance: content.address_detail.distance,
+        parent_poi_city: addressComponents.city,
+        edz_name: content.edz.name,
+        street: addressComponents.street,
+        street_number: addressComponents.streetNumber,
+        district: addressComponents.district,
+        province: addressComponents.province,
+        adcode: content.address_detail.adcode,
+        country: content.address_detail.country,
+        country_code: content.address_detail.country_code,
+        town: content.address_detail.town,
+        town_code: content.address_detail.town_code,
+        business: content.business,
+        poi_desc: content.poi_desc
+      })
+    });
+    return res;
+  }
+  </script>
+</body>
+</html>
