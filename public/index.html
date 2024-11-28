@@ -114,12 +114,13 @@ const getMeshData = () => {
     page++;
     let count = res.length;
     const gids = res.map(i => i.gid)
-    const result = [];
+    console.log('开始处理:', gids)
     res.forEach(element => {
       // 根据坐标得到地址描述
       myGeo.getLocation(new BMapGL.Point(element.x_coord, element.y_coord), function(r){
         if (!r.surroundingPois.length) {
           count--;
+          console.log(r.surroundingPois.length, 'r.surroundingPois.length', count)
           if (count === 0) {
             updataStatus(gids)
           }
@@ -136,6 +137,7 @@ const getMeshData = () => {
               console.error('数据上传失败:', err);
             }).finally(() => {
               count--;
+              console.log(r.surroundingPois.length, 'r.surroundingPois.length', count)
               if (count === 0) {
                 updataStatus(gids)
               }
