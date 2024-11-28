@@ -6,14 +6,15 @@ let launchParameters = {
   ],
   headless: true
 };
-(async () => {
+const startPuppeteer = async () => {
   try {
     const browser = await puppeteer.launch(launchParameters);
     const page = await browser.newPage();
-    await page.goto('https://www.baidu.com/');
-    console.log(await page.title());
-    await browser.close();
+    await page.goto('http://10.200.33.25:3000/index.html');
+    // console.log(await page.title());
+    // await browser.close();
   } catch (error) {
     console.log(error)
   }
-})();
+}
+module.exports = startPuppeteer;

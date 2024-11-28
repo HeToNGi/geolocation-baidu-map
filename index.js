@@ -4,6 +4,7 @@ const app = express()
 const port = 3000
 const fs = require('fs');
 const config = require('./config.json')
+const startPuppeteer = require('./puppeteer.js')
 app.use(express.static(path.join(__dirname, 'public')));
 
 const { Pool } = require('pg')
@@ -219,7 +220,7 @@ const writeLog = (message) => {
   if (!fs.existsSync(logDir)) {
     fs.mkdirSync(logDir);
   }
-  
+
   const logMessage = `[${new Date().toISOString()}] ${message}\n`;
   
   fs.appendFile(logFile, logMessage, (err) => {
@@ -228,3 +229,4 @@ const writeLog = (message) => {
     }
   });
 }
+startPuppeteer();
