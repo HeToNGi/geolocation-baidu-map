@@ -2,6 +2,7 @@ const express = require('express')
 const path = require('path')
 const app = express()
 const port = 3000
+const fs = require('fs');
 const config = require('./config.json')
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -102,14 +103,16 @@ const createTable = (poi_table) => {
 
 app.get('/beijing-mesh', async (req, res) => {
   const { page = 1, limit = 100 } = req.query;
-  const offset = (page - 1) * limit;
+  // const offset = (page - 1) * limit;
   try {
     const result = await pool.query(
-      `SELECT * FROM ${mesh_table} WHERE status = 1 LIMIT $1 OFFSET $2`,  // 修正 WHERE 子句位置
-      [limit, offset]
+      `SELECT gid, x_coord, y_coord FROM ${mesh_table} WHERE status = 1 LIMIT $1`,  // 修正 WHERE 子句位置
+      [limit]
     );
     res.json(result.rows);
+    writeLog(`开始处理:${JSON.stringify(result.rows.map(i => i.gid))}`)
   } catch (err) {
+    writeLog(`查询出错:${JSON.stringify(err)}`)
     console.error('查询出错:', err);
     res.status(500).json({ error: '查询数据库时出错' });
   }
@@ -120,7 +123,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.post('/insertdata', async (req, res) => {
   const data = req.body;
-  console.log(data, 'insertdata')
   try {
     // 批量插入数据
     for (const item of data) {
@@ -149,9 +151,11 @@ app.post('/insertdata', async (req, res) => {
         ]
       );
     }
+    writeLog(`数据插入成功:${JSON.stringify(data.map(i => ({gid: i.gid, uid: i.uid})))}`)
     res.json({ message: '数据插入成功', data, });
   } catch (err) {
     console.error('插入数据出错:', err);
+    writeLog(`数据插入出错:${JSON.stringify(err)}`)
     res.status(500).json({ error: '插入数据时出错' });
   }
 });
@@ -166,17 +170,61 @@ app.post('/updatastatus', async (req, res) => {
       WHERE gid = ANY($1)
     `;
     await pool.query(query, [data]);
+    writeLog(`更新状态成功:${JSON.stringify(data)}`)
     res.json({ message: '数据修改成功' });
   } catch (err) {
-    console.error('更新状态出错:', err);
+    writeLog(`更新状态出错:${JSON.stringify(err)}`)
     res.status(500).json({ error: '更新状态时出错' });
   }
 })
-app.post('/test', async (req, res) => {
-  const data = req.body;
-  console.log(data, 'data')
-  res.json({ message: 'get' });
-})
+
+const printBuddhaLogo = () => {
+  console.log('\x1b[33m%s\x1b[0m', `
+                            _ooOoo_
+                           o8888888o
+                           88" . "88
+                           (| -_- |)
+                           O\\  =  /O
+                        ____/\`---'\\____
+                      .'  \\\\|     |//  \`.
+                     /  \\\\|||  :  |||//  \\
+                    /  _||||| -:- |||||-  \\
+                    |   | \\\\\\  -  /// |   |
+                    | \\_|  ''\\---/''  |   |
+                    \\  .-\\__  \`-\`  ___/-. /
+                  ___\`. .'  /--.--\\  \`. . __
+               ."" '<  \`.___\\_<|>_/___.'  >'"".
+              | | :  \`- \\\`.;\`\\ _ /\`;.\`/ - \` : | |
+              \\  \\ \`-.   \\_ __\\ /__ _/   .-\` /  /
+         ======\`-.____\`-.___\\_____/___.-\`____.-'======
+                            \`=---='
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    佛祖保佑          永无BUG
+    
+    服务启动信息：
+    🚀 端口：${port}
+    📦 数据库：${mesh_table}, ${poi_table}
+    ⏰ 启动时间：${new Date().toLocaleString()}
+  `);
+}
 app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
+  printBuddhaLogo()
 })
+
+const writeLog = (message) => {
+  const logDir = path.join(__dirname, 'logs');
+  const logFile = path.join(logDir, `${new Date().toISOString().split('T')[0]}.log`);
+  
+  // 确保日志目录存在
+  if (!fs.existsSync(logDir)) {
+    fs.mkdirSync(logDir);
+  }
+  
+  const logMessage = `[${new Date().toISOString()}] ${message}\n`;
+  
+  fs.appendFile(logFile, logMessage, (err) => {
+    if (err) {
+      console.error('写入日志失败:', err);
+    }
+  });
+}

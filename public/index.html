@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Document</title>
   <script type="text/javascript" src="https://api.map.baidu.com/api?v=1.0&type=webgl&ak=p7DO0vHWAkgWHoTngllctT3qDoq3hVbp"></script>
+  <!-- <script src="https://esm.sh/css-doodle/css-doodle.min.js?raw"></script> -->
   <style>
     html, body {
       width: 100%;
@@ -14,11 +15,57 @@
       width: 100%;
       height: 100%;
     }
+    .btn {
+      display: flex;
+      width: 190px;
+      height: 48px;
+      padding: 13px 0px;
+      justify-content: center;
+      align-items: center;
+      border-radius: 8px;
+      background: var(--font-title-131314, #131314);
+      color: azure;
+      cursor: pointer;
+      margin-bottom: 20px;
+      position: absolute;
+      z-index: 1;
+    }
+    #stop_btn {
+      top: 100px;
+    }
+    .f_content {
+      /* display: grid; */
+      grid-template-columns: repeat(10, 1fr);
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #131314;
+      /* transform-style: preserve-3d;
+      perspective: 0px; */
+    }
+    .f_item {
+      background: #fff;
+      margin: 2px;
+      width: 1px;
+      transform: rotateX(45deg)
+    }
   </style>
 </head>
 <body>
-<div id="container"></div>
+<div class="btn" id="start_btn">开始</div>
+<div class="btn" id="stop_btn">停止</div>
+<!-- <div class="f_content" id="flex-content">
+  <css-doodle style="width: 100%; height: 100%;">
+    @grid: 15 / 90%;
+    border-radius: 50%;
+    background: hsl(@t(/20), 70%, 60%);
+    scale: sin(@atan2(@dx, @dy) + @ts);
+  </css-doodle>
+</div> -->
 <script>
+  // requestAnimationFrame(update)
 // 百度地图API功能
 // var map = new BMapGL.Map("container");            // 创建Map实例
 // map.enableScrollWheelZoom(true);     //开启鼠标滚轮缩放
@@ -50,27 +97,25 @@
 // }
 
 let page = 1;
+let isStop = false;
 var myGeo = new BMapGL.Geocoder();
-myGeo.getLocation(new BMapGL.Point(116.473236, 39.964502), function(r){  
-  console.log(r)
-  fetch('/test', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(r)
-  }).then(res => {})
-}, {poiRadius: 100, numPois: 20});
+
+document.getElementById('start_btn').addEventListener('click', () => {
+  isStop = false;
+  getMeshData()
+})
+document.getElementById('stop_btn').addEventListener('click', () => {
+  isStop = true;
+})
 
 const getMeshData = () => {
+  if (isStop) return;
   const res = fetch(`/beijing-mesh?page=${page}&limit=5`).then(response => response.json()).then(res => {
     page++;
-    if (page === 3) return;
     let count = res.length;
     const gids = res.map(i => i.gid)
     const result = [];
     res.forEach(element => {
-      console.count(element.x_coord, element.y_coord, element.gid)
       // 根据坐标得到地址描述
       myGeo.getLocation(new BMapGL.Point(element.x_coord, element.y_coord), function(r){
         if (!r.surroundingPois.length) {
@@ -101,8 +146,6 @@ const getMeshData = () => {
   })
 }
 
-// getMeshData();
-
 const updataStatus = (gids) => {
   fetch('/updatastatus', {
     method: 'POST',
@@ -118,79 +161,55 @@ const updataStatus = (gids) => {
     getMeshData();
   })
 }
-
-
-  // .then(response => response.json())
-  // .then(data => {
-  //   let count = data.length;
-  //   const result = [];
-  //   data.forEach(element => {
-  //     // 根据坐标得到地址描述
-  //     myGeo.getLocation(new BMapGL.Point(element.x_coord, element.y_coord), function(r){
-  //       count--;
-  //       result.push(r)
-  //       if (count === 0) {
-  //         console.timeEnd(1)
-  //         console.log(result)
-  //       }
-  //       r.surroundingPois.forEach(element => {
-          
-  //       });
-  //     }, {poiRadius: 100, numPois: 20});
-  //   });
-  // })
-  // .catch(error => {
-  //   console.error('请求出错:', error);
-  // });
-  const handlerData = (data, gid) => {
-    const res = [];
-    const content = data.content
-    const addressComponents = data.addressComponents
-    data.surroundingPois.forEach((ele, i) => {
-      res.push({
-        gid,
-        uid: ele.uid,
-        geom: ele.point.lng + ',' + ele.point.lat,
-        cp: content.surround_poi[i].cp,
-        direction: content.surround_poi[i].direction,
-        distance: content.surround_poi[i].distance,
-        title: ele.title,
-        point_x: ele.point.lng,
-        point_y: ele.point.lat,
-        city: ele.city,
-        poi_type: ele._poiType,
-        type: ele.type,
-        addr: ele.address,
-        postcode: ele.postcode || '',
-        phone_number: ele.phoneNumber || '',
-        tag: content.surround_poi[i].tag,
-        tel: content.surround_poi[i].tel,
-        lng: ele.point.lng,
-        lat: ele.point.lat,
-        zip: content.surround_poi[i].zip,
-        name: content.surround_poi[i].name,
-        parent_poi_addr: data.address,
-        parent_poi_point_x: data.point.lng,
-        parent_poi_point_y: data.point.lat,
-        parent_poi_direction: content.address_detail.direction,
-        parent_poi_distance: content.address_detail.distance,
-        parent_poi_city: addressComponents.city,
-        edz_name: content.edz.name,
-        street: addressComponents.street,
-        street_number: addressComponents.streetNumber,
-        district: addressComponents.district,
-        province: addressComponents.province,
-        adcode: content.address_detail.adcode,
-        country: content.address_detail.country,
-        country_code: content.address_detail.country_code,
-        town: content.address_detail.town,
-        town_code: content.address_detail.town_code,
-        business: content.business,
-        poi_desc: content.poi_desc
-      })
-    });
-    return res;
-  }
-  </script>
+const handlerData = (data, gid) => {
+  const res = [];
+  const content = data.content
+  const addressComponents = data.addressComponents
+  data.surroundingPois.forEach((ele, i) => {
+    res.push({
+      gid,
+      uid: ele.uid,
+      geom: ele.point.lng + ',' + ele.point.lat,
+      cp: content.surround_poi[i].cp,
+      direction: content.surround_poi[i].direction,
+      distance: content.surround_poi[i].distance,
+      title: ele.title,
+      point_x: ele.point.lng,
+      point_y: ele.point.lat,
+      city: ele.city,
+      poi_type: ele._poiType,
+      type: ele.type,
+      addr: ele.address,
+      postcode: ele.postcode || '',
+      phone_number: ele.phoneNumber || '',
+      tag: content.surround_poi[i].tag,
+      tel: content.surround_poi[i].tel,
+      lng: ele.point.lng,
+      lat: ele.point.lat,
+      zip: content.surround_poi[i].zip,
+      name: content.surround_poi[i].name,
+      parent_poi_addr: data.address,
+      parent_poi_point_x: data.point.lng,
+      parent_poi_point_y: data.point.lat,
+      parent_poi_direction: content.address_detail.direction,
+      parent_poi_distance: content.address_detail.distance,
+      parent_poi_city: addressComponents.city,
+      edz_name: content.edz.name,
+      street: addressComponents.street,
+      street_number: addressComponents.streetNumber,
+      district: addressComponents.district,
+      province: addressComponents.province,
+      adcode: content.address_detail.adcode,
+      country: content.address_detail.country,
+      country_code: content.address_detail.country_code,
+      town: content.address_detail.town,
+      town_code: content.address_detail.town_code,
+      business: content.business,
+      poi_desc: content.poi_desc
+    })
+  });
+  return res;
+}
+</script>
 </body>
 </html>
