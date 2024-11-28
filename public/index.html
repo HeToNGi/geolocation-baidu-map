@@ -118,8 +118,10 @@ const getMeshData = () => {
     res.forEach(element => {
       // 根据坐标得到地址描述
       myGeo.getLocation(new BMapGL.Point(element.x_coord, element.y_coord), function(r){
+        console.log(JSON.stringify(r), '李白')
         if (!r) {
           count--;
+          console.log('r.surroundingPois.length', count)
           if (count === 0) {
             updataStatus(gids)
           }
