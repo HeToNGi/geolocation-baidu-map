@@ -15,47 +15,9 @@
       width: 100%;
       height: 100%;
     }
-    .btn {
-      display: flex;
-      width: 190px;
-      height: 48px;
-      padding: 13px 0px;
-      justify-content: center;
-      align-items: center;
-      border-radius: 8px;
-      background: var(--font-title-131314, #131314);
-      color: azure;
-      cursor: pointer;
-      margin-bottom: 20px;
-      position: absolute;
-      z-index: 1;
-    }
-    #stop_btn {
-      top: 100px;
-    }
-    .f_content {
-      /* display: grid; */
-      grid-template-columns: repeat(10, 1fr);
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: #131314;
-      /* transform-style: preserve-3d;
-      perspective: 0px; */
-    }
-    .f_item {
-      background: #fff;
-      margin: 2px;
-      width: 1px;
-      transform: rotateX(45deg)
-    }
   </style>
 </head>
 <body>
-<div class="btn" id="start_btn">开始</div>
-<div class="btn" id="stop_btn">停止</div>
 <!-- <div class="f_content" id="flex-content">
   <css-doodle style="width: 100%; height: 100%;">
     @grid: 15 / 90%;
@@ -96,82 +58,58 @@
 //   map.addOverlay(marker);                     // 将标注添加到地图中
 // }
 
-let page = 1;
-let isStop = false;
 var myGeo = new BMapGL.Geocoder();
-let timer = null;
-let restart = false;
-document.getElementById('start_btn').addEventListener('click', () => {
-  isStop = false;
-  getMeshData()
-})
-document.getElementById('stop_btn').addEventListener('click', () => {
-  isStop = true;
-})
 
-const getMeshData = () => {
-  if (isStop) return;
-  const res = fetch(`/beijing-mesh?page=${page}&limit=5`).then(response => response.json()).then(res => {
-    page++;
-    restart = true;
-    let count = res.length;
-    const gids = res.map(i => i.gid)
-    const gided = [];
-    console.log('开始处理:', gids)
-    res.forEach(element => {
-      // 根据坐标得到地址描述
-      myGeo.getLocation(new BMapGL.Point(element.x_coord, element.y_coord), function(r){
-        console.log(JSON.stringify(r), '李白')
-        gided.push(element.gid)
-        if (!r) {
-          count--;
-          console.log('r.surroundingPois.length', count)
-          if (count === 0) {
-            updataStatus(gided)
-          }
-          return;
-        }
-        if (!r.surroundingPois.length) {
-          count--;
-          console.log(r.surroundingPois.length, 'r.surroundingPois.length', count)
-          if (count === 0) {
-            updataStatus(gided)
-          }
-        } else {
-          fetch('/insertdata', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(handlerData(r, element.gid))
-          }).then(res => res.json()).then(data => {
-              console.log('数据上传成功:', data);
-            }).catch(err => {
-              console.error('数据上传失败:', err);
-            }).finally(() => {
-              count--;
-              console.log(r.surroundingPois.length, 'r.surroundingPois.length', count)
-              if (count === 0) {
-                updataStatus(gided)
-              }
-            });
-        };
-      }, {poiRadius: 100, numPois: 20});
-    });
-    clearTimeout(timer);
-    timer = null;
+const getBaiduMap = (element) => {
+  let timer = null;
+  return new Promise((resolve, reject) => {
     timer = setTimeout(() => {
       clearTimeout(timer);
-      timer = null;
-      if (restart) {
-        updataStatus(gided)
-      };
-    }, 2000)
+      timer = null
+      reject({surroundingPois: []});
+    }, 1000);
+    myGeo.getLocation(new BMapGL.Point(element.x_coord, element.y_coord), function(r) {
+      clearTimeout(timer);
+      timer = null
+      resolve(r)
+    })
+  });
+}
+
+const  getMeshData = () => {
+  const res = fetch(`/beijing-mesh?limit=5`).then(response => response.json()).then(res => {
+    const gids = res.map(i => i.gid)
+    console.log('开始处理数据：', JSON.stringify(gids))
+    Promise.allSettled(res.map(element => getBaiduMap(element))).then((result) => {
+      let insterData = []
+      result.forEach((data, i) => {
+        console.log(handlerData(data.value, res[i].gid))
+        insterData = insterData.concat(handlerData(data.value, res[i].gid))
+      })
+      console.log(insterData, 'insterData')
+      if (insterData.length) {
+        fetch('/insertdata', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(insterData)
+        }).then(res => res.json()).then(data => {
+            console.log('数据上传成功:', data);
+          }).catch(err => {
+            console.error('数据上传失败:', err);
+          }).finally(() => {
+            updataStatus(gids)
+          });
+      } else {
+        updataStatus(gids)
+      }
+    })
   })
 }
 getMeshData();
+
 const updataStatus = (gids) => {
-  restart = false;
   fetch('/updatastatus', {
     method: 'POST',
     headers: {
@@ -187,6 +125,7 @@ const updataStatus = (gids) => {
   })
 }
 const handlerData = (data, gid) => {
+  if (!data.surroundingPois.length) return [];
   const res = [];
   const content = data.content
   const addressComponents = data.addressComponents
