@@ -86,7 +86,7 @@ const  getMeshData = () => {
       try {
         result.forEach((data, i) => {
           console.log(JSON.stringify(handlerData(data.value, res[i].gid), res[i].gid))
-          insterData = insterData.concat(handlerData(data.value, res[i].gid))
+          insterData = insterData.concat(handlerData(data.value || data.reason, res[i].gid))
         })
       } catch (error) {
         console.log(JSON.stringify(error))
@@ -130,7 +130,7 @@ const updataStatus = (gids) => {
   })
 }
 const handlerData = (data, gid) => {
-  if (!data.surroundingPois.length) return [];
+  if (!data || !data.surroundingPois || !data.surroundingPois.length) return [];
   const res = [];
   const content = data.content
   const addressComponents = data.addressComponents
