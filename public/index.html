@@ -82,10 +82,15 @@ const  getMeshData = () => {
     console.log('开始处理数据：', JSON.stringify(gids))
     Promise.allSettled(res.map(element => getBaiduMap(element))).then((result) => {
       let insterData = []
-      result.forEach((data, i) => {
-        console.log(handlerData(data.value, res[i].gid))
-        insterData = insterData.concat(handlerData(data.value, res[i].gid))
-      })
+      console.log(JSON.stringify(result), '回来数据')
+      try {
+        result.forEach((data, i) => {
+          console.log(JSON.stringify(handlerData(data.value, res[i].gid), res[i].gid))
+          insterData = insterData.concat(handlerData(data.value, res[i].gid))
+        })
+      } catch (error) {
+        console.log(JSON.stringify(error))
+      }
       console.log(insterData, 'insterData')
       if (insterData.length) {
         fetch('/insertdata', {
