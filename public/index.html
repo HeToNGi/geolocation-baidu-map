@@ -67,7 +67,7 @@ const getBaiduMap = (element) => {
       clearTimeout(timer);
       timer = null
       reject({surroundingPois: []});
-    }, 1000);
+    }, 8000);
     myGeo.getLocation(new BMapGL.Point(element.x_coord, element.y_coord), function(r) {
       clearTimeout(timer);
       timer = null
