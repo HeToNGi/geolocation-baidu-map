@@ -77,7 +77,7 @@ const getBaiduMap = (element) => {
 }
 
 const  getMeshData = () => {
-  const res = fetch(`/beijing-mesh?limit=5`).then(response => response.json()).then(res => {
+  const res = fetch(`/beijing-mesh?limit=1`).then(response => response.json()).then(res => {
     const gids = res.map(i => i.gid)
     console.log('开始处理数据：', JSON.stringify(gids))
     Promise.allSettled(res.map(element => getBaiduMap(element))).then((result) => {
