@@ -99,7 +99,8 @@
 let page = 1;
 let isStop = false;
 var myGeo = new BMapGL.Geocoder();
-
+let timer = null;
+let restart = false;
 document.getElementById('start_btn').addEventListener('click', () => {
   isStop = false;
   getMeshData()
@@ -112,18 +113,21 @@ const getMeshData = () => {
   if (isStop) return;
   const res = fetch(`/beijing-mesh?page=${page}&limit=5`).then(response => response.json()).then(res => {
     page++;
+    restart = true;
     let count = res.length;
     const gids = res.map(i => i.gid)
+    const gided = [];
     console.log('开始处理:', gids)
     res.forEach(element => {
       // 根据坐标得到地址描述
       myGeo.getLocation(new BMapGL.Point(element.x_coord, element.y_coord), function(r){
         console.log(JSON.stringify(r), '李白')
+        gided.push(element.gid)
         if (!r) {
           count--;
           console.log('r.surroundingPois.length', count)
           if (count === 0) {
-            updataStatus(gids)
+            updataStatus(gided)
           }
           return;
         }
@@ -131,7 +135,7 @@ const getMeshData = () => {
           count--;
           console.log(r.surroundingPois.length, 'r.surroundingPois.length', count)
           if (count === 0) {
-            updataStatus(gids)
+            updataStatus(gided)
           }
         } else {
           fetch('/insertdata', {
@@ -148,16 +152,26 @@ const getMeshData = () => {
               count--;
               console.log(r.surroundingPois.length, 'r.surroundingPois.length', count)
               if (count === 0) {
-                updataStatus(gids)
+                updataStatus(gided)
               }
             });
         };
       }, {poiRadius: 100, numPois: 20});
     });
+    clearTimeout(timer);
+    timer = null;
+    timer = setTimeout(() => {
+      clearTimeout(timer);
+      timer = null;
+      if (restart) {
+        updataStatus(gided)
+      };
+    }, 2000)
   })
 }
 getMeshData();
 const updataStatus = (gids) => {
+  restart = false;
   fetch('/updatastatus', {
     method: 'POST',
     headers: {
