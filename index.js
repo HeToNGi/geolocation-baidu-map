@@ -237,4 +237,5 @@ const writeLog = (message) => {
     }
   });
 }
-// startPuppeteer();
+// 开启浏览器
+startPuppeteer();
