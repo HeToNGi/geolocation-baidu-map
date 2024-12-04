@@ -77,7 +77,7 @@ const getBaiduMap = (element) => {
 }
 
 const  getMeshData = () => {
-  const res = fetch(`/beijing-mesh?limit=1`).then(response => response.json()).then(res => {
+  const res = fetch(`/beijing-mesh?limit=10`).then(response => response.json()).then(res => {
     const gids = res.map(i => i.gid)
     console.log('开始处理数据：', JSON.stringify(gids))
     Promise.allSettled(res.map(element => getBaiduMap(element))).then((result) => {
@@ -104,23 +104,29 @@ const  getMeshData = () => {
           }).catch(err => {
             console.error('数据上传失败:', err);
           }).finally(() => {
-            updataStatus(gids)
+            updataStatus(gids, insterData)
           });
       } else {
-        updataStatus(gids)
+        updataStatus(gids, [])
       }
     })
   })
 }
 getMeshData();
 
-const updataStatus = (gids) => {
+const updataStatus = (gids, insterData) => {
+  const provie = gids.map(i => {
+    return {
+      gid: i,
+      value: insterData.some(e => e.gid === i) ? 0 : 2
+    }
+  });
   fetch('/updatastatus', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify(gids)
+    body: JSON.stringify(provie)
   }).then(res => res.json()).then(data => {
     console.log('数据修改成功:', data);
   }).catch((err) => {

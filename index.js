@@ -163,14 +163,22 @@ app.post('/insertdata', async (req, res) => {
 
 app.post('/updatastatus', async (req, res) => {
   const data = req.body;
+  const dataForZero = data.filter(i => i.value == 0).map(i => i.gid);
+  const dataForTwo = data.filter(i => i.value == 2).map(i => i.gid);
   try {
     // 使用 IN 操作符一次性更新多个 gid
-    const query = `
+    const query1 = `
       UPDATE ${mesh_table}
       SET status = 0
       WHERE gid = ANY($1)
     `;
-    await pool.query(query, [data]);
+    const query2 = `
+      UPDATE ${mesh_table}
+      SET status = 2
+      WHERE gid = ANY($1)
+    `;
+    await pool.query(query1, [dataForZero]);
+    await pool.query(query2, [dataForTwo]);
     writeLog(`更新状态成功:${JSON.stringify(data)}`)
     res.json({ message: '数据修改成功' });
   } catch (err) {
@@ -229,4 +237,4 @@ const writeLog = (message) => {
     }
   });
 }
-startPuppeteer();
+// startPuppeteer();
