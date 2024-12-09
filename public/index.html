@@ -72,7 +72,7 @@ const getBaiduMap = (element) => {
       clearTimeout(timer);
       timer = null
       resolve(r)
-    })
+    }, {poiRadius: 35.36, numPois: 20})
   });
 }
 
